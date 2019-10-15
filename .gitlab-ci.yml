@@ -1,0 +1,63 @@
+image: docker:latest
+image: maven:3.3.9-jdk-8
+
+cache:
+  key: "$CI_PROJECT_NAMESPACE$CI_PROJECT_NAME"
+  paths:
+    - .m2
+
+variables:
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2"
+
+before_script:
+  - mkdir -p $HOME/.m2/
+  - echo '<?xml version="1.0" encoding="UTF-8"?> <settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd"><pluginGroups></pluginGroups><proxies></proxies><servers><server><id>gitlab-maven</id><username>psychykau</username><configuration><httpHeaders><property>
+    <name>Private-Token</name>
+    <value>Stx_-jSCq7eSw4akFSpU</value>
+    </property>
+    </httpHeaders>
+    </configuration>
+    </server></servers><mirrors></mirrors></settings>' > $HOME/.m2/settings.xml
+
+stages:
+  - build
+  - deploy
+
+
+.build: &build_template
+  stage: build
+  script:
+    - mvn package -B
+
+develop_build:
+  <<: *build_template
+  only:
+    - branches
+  except:
+    - master
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - target/*.jar
+
+master_build:
+  <<: *build_template
+  only:
+    - master
+    - tags
+  artifacts:
+    expire_in: 1 month
+    paths:
+      - target/*.jar
+
+deploy:
+  when: manual
+  stage: deploy
+  image: maven:3.3.9-jdk-8
+  script:
+    #- 'mvn deploy -s ci_settings.xml'
+    - 'mvn deploy'
+  only:
+    - tags
