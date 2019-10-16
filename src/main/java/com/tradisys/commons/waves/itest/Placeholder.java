@@ -1,8 +1,8 @@
 package com.tradisys.commons.waves.itest;
 
 public class Placeholder<T> {
-    public final String key;
-    public final T value;
+    private String key;
+    private T value;
 
     public Placeholder(String key, T value) {
         this.key = key;
@@ -15,5 +15,9 @@ public class Placeholder<T> {
 
     public T getValue() {
         return value;
+    }
+
+    public void setValue(T value) {
+        this.value = value;
     }
 }
