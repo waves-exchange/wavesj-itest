@@ -1,7 +1,7 @@
 package com.tradisys.commons.waves.itest;
 
 public class Placeholder<T> {
-    private String key;
+    private final String key;
     private T value;
 
     public Placeholder(String key, T value) {
@@ -11,6 +11,10 @@ public class Placeholder<T> {
 
     public String apply(String script) {
         return script.replace(key, value.toString());
+    }
+
+    public String getKey() {
+        return key;
     }
 
     public T getValue() {
