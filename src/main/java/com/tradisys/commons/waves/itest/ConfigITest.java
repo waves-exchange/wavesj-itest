@@ -17,7 +17,7 @@ public class ConfigITest {
 
     public static final BigDecimal TRANSFER_FEE     = new BigDecimal("0.001");
     public static final BigDecimal SCRIPT_SETUP_FEE = new BigDecimal("0.01");
-    public static final BigDecimal SCRIPT_TX_FEE    = new BigDecimal("0.001");
+    public static final BigDecimal SCRIPT_TX_FEE    = new BigDecimal("0.005");
 
     static {
         Properties props = new Properties();
