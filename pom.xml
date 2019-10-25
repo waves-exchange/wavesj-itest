@@ -6,12 +6,12 @@
 
   <groupId>com.tradisys.commons</groupId>
   <artifactId>waves-itest</artifactId>
-  <version>0.0.3-dev-SNAPSHOT</version>
+  <version>0.0.4-dev-SNAPSHOT</version>
 
   <name>waves-itest</name>
 
   <properties>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.build.soureEncoding>UTF-8</project.build.soureEncoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
