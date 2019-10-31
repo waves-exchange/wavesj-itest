@@ -194,8 +194,8 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         BigDecimal issueFee = BigDecimal.ONE;
         String txId = getNode().getNode().issueAsset(acc, getChainId(), tokenName, desc,
                 emission, decimals, reissuable, null, toBlkMoney(issueFee));
-        getNode().waitMoneyOnBalance(acc.getAddress(), balanceBefore, issueFee.negate(),
-                DefaultPredicates.EQUALS, ConfigITest.DEFAULT_TIMEOUT);
+        getNode().waitTransaction(txId, ConfigITest.DEFAULT_TIMEOUT);
+        Thread.sleep(10*1000);
         getLogger().info("New {} has been issued: name={} decimals={} id={}", desc, tokenName, decimals, txId);
         return txId;
     }
