@@ -15,7 +15,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <tradisys.wavesj.version>0.13.2</tradisys.wavesj.version>
+    <tradisys.wavesj.version>0.15.3</tradisys.wavesj.version>
     <tradisys.waves.toolbox>1.2.2-expiremental</tradisys.waves.toolbox>
     <tradisys.apache.commons.io>2.4</tradisys.apache.commons.io>
   </properties>
