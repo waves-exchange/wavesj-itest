@@ -203,12 +203,12 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         return txId;
     }
 
-    protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopPredicate, long timeout) throws InterruptedException, IOException {
+    protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate, long timeout) throws InterruptedException, IOException {
         Optional<T> state = Optional.empty();
         long start = System.currentTimeMillis();
 
         while (!state.isPresent()
-                || loopPredicate.test(state.get())) {
+                || loopContinuePredicate.test(state.get())) {
             try {
                 state = stateSupplier.get();
             } catch (Exception ex) {
