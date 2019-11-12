@@ -10,9 +10,9 @@ import com.wavesplatform.wavesj.Base58;
 import com.wavesplatform.wavesj.PrivateKeyAccount;
 import com.wavesplatform.wavesj.Transaction;
 import org.apache.commons.io.IOUtils;
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Test;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -113,7 +113,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         setCleanUp(true);
     }
 
-    @After
+    @AfterEach
     public void cleanUp() throws Exception {
         if (mainCtx().cleanup) {
             if (mainCtx().allocatedAccounts.size() > 0) {
@@ -169,7 +169,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
 
     protected void assertMoneyOnAccount(String message, PrivateKeyAccount acc, BigDecimal expected) throws IOException {
         BalanceInfo balance = getNode().getBalanceInfo(acc.getAddress());
-        Assert.assertEquals(message, toBlkMoney(expected), balance.getAvailable());
+        Assertions.assertEquals(toBlkMoney(expected), balance.getAvailable(), message);
     }
 
     public static String readScript(String resource, Placeholder<?>[] placeholders) throws IOException {
@@ -201,7 +201,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     protected String deployScript(PrivateKeyAccount toAcc, String script, long timeout) throws IOException, InterruptedException {
-        Assert.assertNotNull("Script should be not null", script);
+        Assertions.assertNotNull(script, "Script should be not null");
         getLogger().info("Script to be deployed:\n{}", script);
 
         String txId = getNode().setScript(toAcc, script, getChainId(), toBlkMoney(SCRIPT_SETUP_FEE));
