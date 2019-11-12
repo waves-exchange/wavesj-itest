@@ -109,7 +109,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
      * Because of inheritance this methods will be always last
      */
     @Test
-    public void enableCleanUp() {
+    public void n999_enableCleanUp() {
         setCleanUp(true);
     }
 
