@@ -1,6 +1,7 @@
 package com.tradisys.commons.waves.itest;
 
 import com.tradisys.games.server.HttpClientConfig;
+import com.tradisys.games.server.exception.BlkChTimeoutException;
 import com.tradisys.games.server.integration.BalanceInfo;
 import com.tradisys.games.server.integration.NodeDecorator;
 import com.tradisys.games.server.integration.TransactionsFactory;
@@ -20,6 +21,8 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.function.Predicate;
+import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
 import static com.tradisys.commons.waves.itest.ConfigITest.SCRIPT_SETUP_FEE;
@@ -198,6 +201,28 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         Thread.sleep(10*1000);
         getLogger().info("New {} has been issued: name={} decimals={} id={}", desc, tokenName, decimals, txId);
         return txId;
+    }
+
+    protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopPredicate, long timeout) throws InterruptedException, IOException {
+        Optional<T> state = Optional.empty();
+        long start = System.currentTimeMillis();
+
+        while (!state.isPresent()
+                || loopPredicate.test(state.get())) {
+            try {
+                state = stateSupplier.get();
+            } catch (Exception ex) {
+                getLogger().warn("Error during shared state read");
+            }
+            Thread.sleep(1000);
+
+            if (System.currentTimeMillis() - start >= timeout) {
+                getLogger().error("Waiting state was stopped by timeout");
+                throw new BlkChTimeoutException("Waiting state was stopped by timeout");
+            }
+        }
+
+        return state.get();
     }
 
     protected String deployScript(PrivateKeyAccount toAcc, String script, long timeout) throws IOException, InterruptedException {
