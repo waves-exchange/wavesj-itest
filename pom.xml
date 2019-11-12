@@ -6,7 +6,7 @@
 
   <groupId>com.tradisys.commons</groupId>
   <artifactId>waves-itest</artifactId>
-  <version>0.0.6-dev-SNAPSHOT</version>
+  <version>0.0.7-dev-SNAPSHOT</version>
 
   <name>waves-itest</name>
 
