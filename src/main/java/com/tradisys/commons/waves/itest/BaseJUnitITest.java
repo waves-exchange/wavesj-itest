@@ -80,7 +80,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
 
     protected abstract CTX initCustomCtx();
 
-    protected final CTX ctx() {
+    public final CTX ctx() {
         return customCtxType.cast(mainCtx().customCtx);
     }
 
