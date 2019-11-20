@@ -188,17 +188,14 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     protected String issueAsset(PrivateKeyAccount acc, long emission, byte decimals, String prefix, boolean reissuable)
-            throws IOException, InterruptedException {
+            throws IOException {
         prefix = prefix.length() < 5 ? prefix : prefix.substring(0, 5);
         String tokenName = prefix + UUID.randomUUID().toString().substring(0, 6);
         String desc = tokenName + " Test Token";
 
-        BigDecimal balanceBefore = toServerMoney(getNode().getBalanceInfo(acc.getAddress()).getAvailable());
         BigDecimal issueFee = BigDecimal.ONE;
         String txId = getNode().getNode().issueAsset(acc, getChainId(), tokenName, desc,
                 emission, decimals, reissuable, null, toBlkMoney(issueFee));
-        getNode().waitTransaction(txId, ConfigITest.DEFAULT_TIMEOUT);
-        Thread.sleep(10*1000);
         getLogger().info("New {} has been issued: name={} decimals={} id={}", desc, tokenName, decimals, txId);
         return txId;
     }
