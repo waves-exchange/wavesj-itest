@@ -28,4 +28,19 @@ public abstract class Placeholder<T> {
     public void setValue(T value) {
         this.value = value;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Placeholder)) return false;
+
+        Placeholder<?> that = (Placeholder<?>) o;
+
+        return key.equals(that.key);
+    }
+
+    @Override
+    public int hashCode() {
+        return key.hashCode();
+    }
 }
