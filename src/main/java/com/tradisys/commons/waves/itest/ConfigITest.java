@@ -38,8 +38,8 @@ public class ConfigITest {
         switch (accountByte.toLowerCase()) {
             case "testnet": return NodeDecorator.TESTNET;
             case "mainnet": return NodeDecorator.MAINNET;
-            case "tradisysnet":
-            default: return NodeDecorator.TRADISYSNET;
+            case "tradisysnet": return NodeDecorator.TRADISYSNET;
+            default: return accountByte.getBytes()[0];
         }
     }
 }
