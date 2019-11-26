@@ -6,7 +6,7 @@
 
   <groupId>com.tradisys.commons</groupId>
   <artifactId>waves-itest</artifactId>
-  <version>0.1.4</version>
+  <version>0.1.5</version>
 
   <name>waves-itest</name>
 
@@ -15,7 +15,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
 
-    <tradisys.wavesj.version>0.17-2.01</tradisys.wavesj.version>
+    <tradisys.wavesj.version>0.17-3.01</tradisys.wavesj.version>
     <tradisys.apache.commons.io>2.4</tradisys.apache.commons.io>
   </properties>
 
@@ -73,19 +73,19 @@
 
   <repositories>
     <repository>
-      <id>gitlab-maven</id>
-      <url>https://gitlab.com/api/v4/groups/4822893/-/packages/maven</url>
+      <id>dorateam-release</id>
+      <url>https://nexus.dorateam.dev/repository/dorateam-release/</url>
     </repository>
   </repositories>
 
   <distributionManagement>
     <repository>
-      <id>gitlab-maven</id>
-      <url>https://gitlab.com/api/v4/projects/14830084/packages/maven</url>
+      <id>dorateam-nexus</id>
+      <url>https://nexus.dorateam.dev/repository/dorateam-release/</url>
     </repository>
     <snapshotRepository>
-      <id>gitlab-maven</id>
-      <url>https://gitlab.com/api/v4/projects/14830084/packages/maven</url>
+      <id>dorateam-nexus</id>
+      <url>https://nexus.dorateam.dev/repository/dorateam-snapshot/</url>
     </snapshotRepository>
   </distributionManagement>
 </project>
