@@ -2,14 +2,13 @@ package com.tradisys.commons.waves.itest;
 
 import com.tradisys.games.server.HttpClientConfig;
 import com.tradisys.games.server.exception.BlkChTimeoutException;
-import com.tradisys.games.server.integration.BalanceInfo;
-import com.tradisys.games.server.integration.NodeDecorator;
-import com.tradisys.games.server.integration.TransactionsFactory;
-import com.tradisys.games.server.integration.WavesNodeDecorator;
+import com.tradisys.games.server.integration.*;
 import com.tradisys.games.server.utils.DefaultPredicates;
 import com.wavesplatform.wavesj.Base58;
 import com.wavesplatform.wavesj.PrivateKeyAccount;
 import com.wavesplatform.wavesj.Transaction;
+import com.wavesplatform.wavesj.Transactions;
+import com.wavesplatform.wavesj.transactions.IssueTransaction;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
@@ -71,7 +70,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     @BeforeEach
     public void init() {
         MainContext mainCtx = mainCtx();
-        if (mainCtx.customCtx == null) {
+        if (mainCtx.customCtx == null && !mainCtx.customCtxInitError) {
             mainCtx.customCtx = _initCustomCtx();
         }
     }
@@ -82,8 +81,10 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
             getLogger().info("Custom context key={} hasCode={} has been initialized", ctxKey(), ctx.hashCode());
             return ctx;
         } catch (Exception ex) {
-            throw new IllegalStateException("Error during custom context initialization", ex);
+            getLogger().error("Error during custom context initialization", ex);
+            mainCtx().customCtxInitError = true;
         }
+        return null;
     }
 
     protected abstract CTX initCustomCtx() throws Exception;
@@ -206,17 +207,32 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         return deployScript(toAcc, script, 0);
     }
 
-    protected String issueAsset(PrivateKeyAccount acc, long emission, byte decimals, String prefix, boolean reissuable)
-            throws IOException {
+    protected IssueTransaction makeIssueTx(PrivateKeyAccount acc, long emission, byte decimals, String prefix, boolean reissuable) {
         prefix = prefix.length() < 5 ? prefix : prefix.substring(0, 5);
         String tokenName = prefix + UUID.randomUUID().toString().substring(0, 6);
         String desc = tokenName + " Test Token";
 
-        BigDecimal issueFee = BigDecimal.ONE;
-        String txId = getNode().getNode().issueAsset(acc, getChainId(), tokenName, desc,
-                emission, decimals, reissuable, null, toBlkMoney(issueFee));
-        getLogger().info("New {} has been issued: name={} decimals={} id={}", desc, tokenName, decimals, txId);
+        return Transactions.makeIssueTx(
+                acc, getChainId(), tokenName, desc, emission, decimals, reissuable, null, Fees.WAVES.ISSUE_FEE);
+    }
+
+    protected String issueAsset(PrivateKeyAccount acc, long emission, byte decimals, String prefix, boolean reissuable)
+            throws IOException {
+        IssueTransaction issueTx = makeIssueTx(acc, emission, decimals, prefix, reissuable);
+        String txId = getNode().send(issueTx);
+        getLogger().info("New {} has been issued: name={} decimals={} id={}",
+                issueTx.getDescription(), issueTx.getName(), decimals, txId);
         return txId;
+    }
+
+    protected Optional<BalanceInfo> getBalanceSilently(String address) {
+        BalanceInfo b = null;
+        try {
+            b = getNode().getBalanceInfo(address);
+        } catch (IOException ex) {
+            getLogger().warn("Something wrong during balance read: address={}", address, ex);
+        }
+        return Optional.ofNullable(b);
     }
 
     protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate, long timeout) throws InterruptedException, IOException {
@@ -287,6 +303,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         private PrivateKeyAccount benzAcc;
         private List<PrivateKeyAccount> allocatedAccounts = new ArrayList<>(10);
 
+        private boolean customCtxInitError;
         private CustomCtx customCtx;
     }
 }
