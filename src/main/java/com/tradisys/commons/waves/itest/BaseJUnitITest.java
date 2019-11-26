@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
@@ -37,33 +38,37 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
     private static Map<String, MainContext> ctxByClass = Collections.synchronizedMap(new HashMap<>());
     private Class<CTX> customCtxType;
 
+    protected   abstract @Nonnull CTX initCustomCtx(@Nullable PARENT_CTX parentCtx) throws Exception;
+
     public BaseJUnitITest(Class<CTX> customCtxType) {
-        this(customCtxType, ConfigITest.ACCOUNT_BYTE);
+        this(customCtxType, null);
     }
 
-    public BaseJUnitITest(Class<CTX> customCtxType, byte chainId) {
+    public BaseJUnitITest(Class<CTX> customCtxType, Byte chainId) {
         this(customCtxType, chainId, null);
     }
 
-    public BaseJUnitITest(Class<CTX> customCtxType, byte chainId, NodeDecorator nodeUrl) {
-        this(customCtxType, nodeUrl, chainId, null);
+    public BaseJUnitITest(Class<CTX> customCtxType, Byte chainId, NodeDecorator node) {
+        this(customCtxType, node, chainId, null);
     }
 
-    public BaseJUnitITest(Class<CTX> customCtxType, NodeDecorator node, byte chainId, PrivateKeyAccount benzAcc) {
+    public BaseJUnitITest(Class<CTX> customCtxType, NodeDecorator node, Byte chainId, PrivateKeyAccount benzAcc) {
         this.customCtxType = customCtxType;
         MainContext mainCtx = mainCtx();
         if (mainCtx == null) {
             mainCtx = new MainContext();
-            ctxByClass.put(ctxKey(), mainCtx);
-
             mainCtx.chainId = chainId;
-            mainCtx.wavesNode = node != null ? node : getDefaultNode(mainCtx.chainId);
-            mainCtx.benzAcc = benzAcc != null ? benzAcc : fromPrivateKey(ConfigITest.BENZ_PRIVATE, chainId);
+            mainCtx.wavesNode = node;
+            mainCtx.benzAcc = benzAcc;
             mainCtx.cleanup = false;
             mainCtx.logger = LoggerFactory.getLogger(this.getClass());
 
-            getLogger().info("Benz account address: {}", getBenzAcc().getAddress());
+            ctxByClass.put(ctxKey(), mainCtx);
         }
+    }
+
+    public @Nonnull ConfigITest getITesConfig() {
+        return ConfigITest.get();
     }
 
     @BeforeEach
@@ -75,10 +80,20 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
         MainContext mainCtx = mainCtx();
         if (mainCtx.customCtx == null && !mainCtx.customCtxInitError) {
             mainCtx.customCtx = _initCustomCtx(parentCtx);
+
+            ConfigITest cfg = getITesConfig();
+
+            mainCtx.chainId = cfg.getAccountByte();
+            mainCtx.wavesNode = mainCtx.wavesNode != null ? mainCtx.wavesNode : getDefaultNode(mainCtx.chainId, cfg);
+            mainCtx.benzAcc = mainCtx.benzAcc != null ? mainCtx.benzAcc : fromPrivateKey(cfg.getBenzPrivate(), mainCtx.chainId);
+            mainCtx.cleanup = false;
+            mainCtx.logger = LoggerFactory.getLogger(this.getClass());
+
+            getLogger().info("Benz account address: {}", getBenzAcc().getAddress());
         }
     }
 
-    private CTX _initCustomCtx(@Nullable PARENT_CTX parentCtx) {
+    private @Nonnull CTX _initCustomCtx(@Nullable PARENT_CTX parentCtx) {
         try {
             CTX ctx = initCustomCtx(parentCtx);
             getLogger().info("Custom context key={} hasCode={} has been initialized", ctxKey(), ctx.hashCode());
@@ -86,23 +101,23 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
         } catch (Exception ex) {
             getLogger().error("Error during custom context initialization", ex);
             mainCtx().customCtxInitError = true;
+            throw new RuntimeException("Error during custom context initialization", ex);
         }
-        return null;
     }
-
-    protected abstract CTX initCustomCtx(@Nullable PARENT_CTX parentCtx) throws Exception;
 
     public final CTX ctx() {
         return customCtxType.cast(mainCtx().customCtx);
     }
 
-    protected static WavesNodeDecorator getDefaultNode(byte chainId) {
-        String url = ConfigITest.NODE_URL;
+    protected static WavesNodeDecorator getDefaultNode(byte chainId, ConfigITest cfg) {
+        String url = cfg.getNodeUrl();
         try {
             return new WavesNodeDecorator(url, chainId, null, HttpClientConfig.getDefault(), null,
-                    ConfigITest.NODE_API_AVG_BLOCK_DELAY, ConfigITest.NODE_API_RETRIES, DEFAULT_TIMEOUT, 3);
+                    cfg.getNodeApiAvgBlockDelay(),
+                    cfg.getNodeApiRetries(),
+                    cfg.getDefaultTimeout(), 3);
         } catch (URISyntaxException ex) {
-            String msg = String.format("Invalid waves node url in %1$s - %2$s", getITestConfig(), url);
+            String msg = String.format("Invalid waves node url in %1$s - %2$s", getITestConfigFile(), url);
             throw new RuntimeException(msg, ex);
         }
     }
@@ -132,7 +147,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
     }
 
     protected long getDefaultTimeout() {
-        return DEFAULT_TIMEOUT;
+        return getITesConfig().getDefaultTimeout();
     }
 
     /**
@@ -189,7 +204,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
         getLogger().info("Transferring initial funds to {} account: transferTxId={} accAddress={} initAmt={}",
                 name, txId, acc.getAddress(), initAmt);
         getNode().waitMoneyOnBalance(acc.getAddress(), BigDecimal.ZERO, initAmt,
-                DefaultPredicates.EQUALS, DEFAULT_TIMEOUT);
+                DefaultPredicates.EQUALS, getDefaultTimeout());
         return acc;
     }
 
@@ -374,7 +389,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
         if (timeout > 0) {
             getNode().waitTransaction(txId, timeout);
         } else if (timeout == 0) {
-            getNode().waitTransaction(txId, DEFAULT_TIMEOUT);
+            getNode().waitTransaction(txId, getDefaultTimeout());
         }
         return txId;
     }
@@ -405,7 +420,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
 
         private Logger logger;
 
-        private byte chainId;
+        private Byte chainId;
         private boolean cleanup;
         private NodeDecorator wavesNode;
         private PrivateKeyAccount benzAcc;
