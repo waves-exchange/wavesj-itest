@@ -208,7 +208,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     protected IssueTransaction makeIssueTx(PrivateKeyAccount acc, long emission, byte decimals, String prefix, boolean reissuable) {
-        prefix = prefix.length() < 5 ? prefix : prefix.substring(0, 5);
+        prefix = prefix.length() < 10 ? prefix : prefix.substring(0, 10);
         String tokenName = prefix + UUID.randomUUID().toString().substring(0, 6);
         String desc = tokenName + " Test Token";
 
