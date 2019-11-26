@@ -2,14 +2,16 @@ package com.tradisys.commons.waves.itest;
 
 import com.tradisys.commons.waves.itest.scm.HardDriveFileExtractor;
 import com.tradisys.commons.waves.itest.scm.ScmFileMeta;
+import jdk.nashorn.internal.ir.annotations.Ignore;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 
+@Ignore
 public class HardDriveFileExtractorTest {
 
-    //@Test
+    @Test
     public void testRead() throws Exception {
         testFileRead("/Users/amurashko/Work/Tradisys/GitLab/waves-itest/src/test/resources");
         testFileRead("/Users/amurashko/Work/Tradisys/GitLab/waves-itest/src/test/resources/");
