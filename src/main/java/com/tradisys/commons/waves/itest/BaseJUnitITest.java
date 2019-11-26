@@ -237,7 +237,11 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     public void waitWavesBalance(PublicKeyAccount acc, long expectedRawBalance, long timeout) throws IOException, InterruptedException {
-        waitAssetBalance(acc, expectedRawBalance, null, timeout);
+        waitWavesBalance(acc.getAddress(), expectedRawBalance, timeout);
+    }
+
+    public void waitWavesBalance(String address, long expectedRawBalance, long timeout) throws IOException, InterruptedException {
+        waitAssetBalance(address, expectedRawBalance, null, timeout);
     }
 
     public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId) throws IOException, InterruptedException {
@@ -245,19 +249,23 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId, long timeout) throws IOException, InterruptedException {
+        waitAssetBalance(acc.getAddress(), expectedRawBalance, assetId, timeout);
+    }
+
+    public void waitAssetBalance(String address, long expectedRawBalance, String assetId, long timeout) throws IOException, InterruptedException {
         if (Asset.isWaves(assetId)) {
-            whileInState(() -> getBalanceSilently(acc.getAddress()),
+            whileInState(() -> getBalanceSilently(address),
                     b -> b.getAvailable() != expectedRawBalance, timeout,
                     ob -> ob.ifPresent(b -> getLogger()
-                            .warn("Waiting balance was stopped by timeout: actual={} expected={}",
-                                    b.getAvailable(), expectedRawBalance))
+                            .warn("Waiting balance for {} was stopped by timeout: actual={} expected={}",
+                                    address, b.getAvailable(), expectedRawBalance))
                     );
         } else {
-            whileInState(() ->  getAssetBalanceSilently(acc.getAddress(), assetId),
+            whileInState(() ->  getAssetBalanceSilently(address, assetId),
                     b -> b.getBalance() != expectedRawBalance, timeout,
                     ob -> ob.ifPresent(b -> getLogger()
-                            .warn("Waiting balance was stopped by timeout: actual={} expected={}",
-                                    b.getBalance(), expectedRawBalance)));
+                            .warn("Waiting balance for {} was stopped by timeout: actual={} expected={}",
+                                    address, b.getBalance(), expectedRawBalance)));
         }
     }
 
