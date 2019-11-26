@@ -333,27 +333,29 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         Optional<T> state = Optional.empty();
         long start = System.currentTimeMillis();
         int currConfirmations = 0;
-        boolean loop = true;
 
-        while (loop) {
+        while (currConfirmations < confirmations) {
             try {
                 state = stateSupplier.get();
                 if (state.isPresent()) {
                     if (!loopContinuePredicate.test(state.get())) {
-                        if (currConfirmations++ >= confirmations) {
-                            loop = false;
-                        }
+                        currConfirmations++;
                     }
                 }
             } catch (Exception ex) {
-                getLogger().warn("Error during shared state read");
+                getLogger().warn("whileInState: error during state read");
             }
-            Thread.sleep(1000);
 
             if (System.currentTimeMillis() - start >= timeout) {
                 timeoutCallback.accept(state);
                 getLogger().error("Waiting state was stopped by timeout");
                 throw new BlkChTimeoutException("Waiting state was stopped by timeout");
+            }
+
+            if (currConfirmations == 0) {
+                Thread.sleep(1000);
+            } else {
+                Thread.sleep(100);
             }
         }
 
