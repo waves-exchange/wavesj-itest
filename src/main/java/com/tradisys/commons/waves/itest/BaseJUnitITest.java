@@ -13,6 +13,7 @@ import com.wavesplatform.wavesj.Transaction;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -62,10 +63,33 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
             mainCtx.benzAcc = benzAcc != null ? benzAcc : fromPrivateKey(ConfigITest.BENZ_PRIVATE, chainId);
             mainCtx.cleanup = false;
             mainCtx.logger = LoggerFactory.getLogger(this.getClass());
-            mainCtx.customCtx = initCustomCtx();
 
             getLogger().info("Benz account address: {}", getBenzAcc().getAddress());
         }
+    }
+
+    @BeforeEach
+    public void init() {
+        MainContext mainCtx = mainCtx();
+        if (mainCtx.customCtx == null) {
+            mainCtx.customCtx = _initCustomCtx();
+        }
+    }
+
+    private CTX _initCustomCtx() {
+        try {
+            CTX ctx = initCustomCtx();
+            getLogger().info("Custom context key={} hasCode={} has been initialized", ctxKey(), ctx.hashCode());
+            return ctx;
+        } catch (Exception ex) {
+            throw new IllegalStateException("Error during custom context initialization", ex);
+        }
+    }
+
+    protected abstract CTX initCustomCtx() throws Exception;
+
+    public final CTX ctx() {
+        return customCtxType.cast(mainCtx().customCtx);
     }
 
     protected static WavesNodeDecorator getDefaultNode(byte chainId) {
@@ -77,12 +101,6 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
             String msg = String.format("Invalid waves node url in %1$s - %2$s", ConfigITest.FILE_NAME, url);
             throw new RuntimeException(msg, ex);
         }
-    }
-
-    protected abstract CTX initCustomCtx();
-
-    public final CTX ctx() {
-        return customCtxType.cast(mainCtx().customCtx);
     }
 
     protected final Logger getLogger() {
