@@ -79,17 +79,17 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
     public void init(@Nullable PARENT_CTX parentCtx) {
         MainContext mainCtx = mainCtx();
         if (mainCtx.customCtx == null && !mainCtx.customCtxInitError) {
-            mainCtx.customCtx = _initCustomCtx(parentCtx);
-
             ConfigITest cfg = getITesConfig();
 
-            mainCtx.chainId = cfg.getAccountByte();
+            mainCtx.chainId = mainCtx.chainId != null ? mainCtx.chainId : cfg.getAccountByte();
             mainCtx.wavesNode = mainCtx.wavesNode != null ? mainCtx.wavesNode : getDefaultNode(mainCtx.chainId, cfg);
             mainCtx.benzAcc = mainCtx.benzAcc != null ? mainCtx.benzAcc : fromPrivateKey(cfg.getBenzPrivate(), mainCtx.chainId);
             mainCtx.cleanup = false;
             mainCtx.logger = LoggerFactory.getLogger(this.getClass());
 
             getLogger().info("Benz account address: {}", getBenzAcc().getAddress());
+
+            mainCtx.customCtx = _initCustomCtx(parentCtx);
         }
     }
 
@@ -315,6 +315,17 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
         getLogger().info("New {} has been issued: name={} decimals={} id={}",
                 issueTx.getDescription(), issueTx.getName(), decimals, txId);
         return txId;
+    }
+
+    protected String burnAsset(PrivateKeyAccount acc, String assetId, long amount) throws IOException {
+        return burnAsset(acc, assetId, amount, Fees.WAVES.TRANSFER_FEE);
+    }
+
+    protected String burnAsset(PrivateKeyAccount acc, String assetId, long amount, long fee) throws IOException {
+        Transaction burnTx = Transactions.makeBurnTx(acc, getChainId(), assetId, amount, fee);
+        getLogger().info("Burning asset: txId={} acc={} assetId={} assetId={}",
+                burnTx.getId().getBase58String(), acc.getAddress(), amount, fee);
+        return getNode().send(burnTx);
     }
 
     protected Optional<BalanceInfo> getBalanceSilently(String address) {
