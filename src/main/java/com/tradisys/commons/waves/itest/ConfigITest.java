@@ -50,7 +50,7 @@ public class ConfigITest {
             nodeApiAvgBlockDelay = Long.parseLong(props.getProperty("itest.account.node.api.avgBlockDelay"));
             init(props);
         } catch (Exception ex) {
-            throw new IllegalStateException("Impossible to find itest configuration file in classpath: filename=" + getITestConfigFile());
+            throw new IllegalStateException("Impossible to find itest configuration file in classpath: filename=" + getITestConfigFile(), ex);
         }
     }
 
