@@ -15,9 +15,11 @@ public class AssertionsExt {
             String actualErrorMsg = e.getMessage();
             boolean contains = actualErrorMsg.contains(expectedErrorMsg);
             if (!contains) {
-                LOGGER.error("Actual exception message differs from expected:\n\tactualMsg={}\n\texpectedMsg={}",
+                String msg = String.format("Actual exception message differs from expected:\n\tactualMsg=%1$s\n\texpectedMsg=%2$s",
                         actualErrorMsg, expectedErrorMsg);
-                Assertions.fail();
+
+                LOGGER.error(msg);
+                Assertions.fail(msg);
             }
         }
     }
