@@ -309,7 +309,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     private String ctxKey() {
-        return this.getClass().getName();
+        return Integer.toString(this.hashCode());
     }
 
     private MainContext mainCtx() {
