@@ -247,6 +247,16 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         return Optional.ofNullable(b);
     }
 
+    protected Optional<AssetBalanceInfo> getAssetBalanceSilently(String address, String assetId) {
+        AssetBalanceInfo b = null;
+        try {
+            b = getNode().getAssetBalance(address, assetId);
+        } catch (IOException ex) {
+            getLogger().warn("Something wrong during balance read: address={}", address, ex);
+        }
+        return Optional.ofNullable(b);
+    }
+
     protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate, long timeout) throws InterruptedException, IOException {
         Optional<T> state = Optional.empty();
         long start = System.currentTimeMillis();
