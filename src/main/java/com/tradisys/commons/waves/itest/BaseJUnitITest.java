@@ -4,10 +4,7 @@ import com.tradisys.games.server.HttpClientConfig;
 import com.tradisys.games.server.exception.BlkChTimeoutException;
 import com.tradisys.games.server.integration.*;
 import com.tradisys.games.server.utils.DefaultPredicates;
-import com.wavesplatform.wavesj.Base58;
-import com.wavesplatform.wavesj.PrivateKeyAccount;
-import com.wavesplatform.wavesj.Transaction;
-import com.wavesplatform.wavesj.Transactions;
+import com.wavesplatform.wavesj.*;
 import com.wavesplatform.wavesj.transactions.IssueTransaction;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.AfterEach;
@@ -203,9 +200,32 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         }
     }
 
-    protected void assertMoneyOnAccount(String message, PrivateKeyAccount acc, BigDecimal expected) throws IOException {
-        BalanceInfo balance = getNode().getBalanceInfo(acc.getAddress());
-        Assertions.assertEquals(toBlkMoney(expected), balance.getAvailable(), message);
+    protected void assertWavesBalance(String message, PrivateKeyAccount acc, BigDecimal expected) throws IOException {
+        assertBalance(message, acc, null, toBlkMoney(expected));
+    }
+
+    protected void assertBalance(String message, PrivateKeyAccount acc, String assetId, long expected) throws IOException {
+        if (Asset.isWaves(assetId)) {
+            BalanceInfo balance = getNode().getBalanceInfo(acc.getAddress());
+            Assertions.assertEquals(expected, balance.getAvailable(), message);
+        } else {
+            AssetBalanceInfo balance = getNode().getAssetBalance(acc.getAddress(), assetId);
+            Assertions.assertEquals(expected, balance.getBalance(), message);
+        }
+    }
+
+    public void waitWavesBalance(PublicKeyAccount acc, long expectedRawBalance) throws IOException, InterruptedException {
+        waitAssetBalance(acc, expectedRawBalance, null);
+    }
+
+    public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId) throws IOException, InterruptedException {
+        if (Asset.isWaves(assetId)) {
+            whileInState(() -> getBalanceSilently(acc.getAddress()),
+                    b -> b.getAvailable() != expectedRawBalance, getDefaultTimeout());
+        } else {
+            whileInState(() ->  getAssetBalanceSilently(acc.getAddress(), assetId),
+                    b -> b.getBalance() != expectedRawBalance, getDefaultTimeout());
+        }
     }
 
     public static String readScript(String resource, Placeholder<?>[] placeholders) throws IOException {
