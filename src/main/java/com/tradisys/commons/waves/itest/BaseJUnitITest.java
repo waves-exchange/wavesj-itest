@@ -222,20 +222,28 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     public void waitWavesBalance(PublicKeyAccount acc, long expectedRawBalance) throws IOException, InterruptedException {
-        waitAssetBalance(acc, expectedRawBalance, null);
+        waitWavesBalance(acc, expectedRawBalance, getDefaultTimeout());
+    }
+
+    public void waitWavesBalance(PublicKeyAccount acc, long expectedRawBalance, long timeout) throws IOException, InterruptedException {
+        waitAssetBalance(acc, expectedRawBalance, null, timeout);
     }
 
     public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId) throws IOException, InterruptedException {
+        waitAssetBalance(acc, expectedRawBalance, assetId, getDefaultTimeout());
+    }
+
+    public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId, long timeout) throws IOException, InterruptedException {
         if (Asset.isWaves(assetId)) {
             whileInState(() -> getBalanceSilently(acc.getAddress()),
-                    b -> b.getAvailable() != expectedRawBalance, getDefaultTimeout(),
+                    b -> b.getAvailable() != expectedRawBalance, timeout,
                     ob -> ob.ifPresent(b -> getLogger()
                             .warn("Waiting balance was stopped by timeout: actual={} expected={}",
                                     b.getAvailable(), expectedRawBalance))
                     );
         } else {
             whileInState(() ->  getAssetBalanceSilently(acc.getAddress(), assetId),
-                    b -> b.getBalance() != expectedRawBalance, getDefaultTimeout(),
+                    b -> b.getBalance() != expectedRawBalance, timeout,
                     ob -> ob.ifPresent(b -> getLogger()
                             .warn("Waiting balance was stopped by timeout: actual={} expected={}",
                                     b.getBalance(), expectedRawBalance)));
