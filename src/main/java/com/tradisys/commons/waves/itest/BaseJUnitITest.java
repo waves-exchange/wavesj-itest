@@ -38,7 +38,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PAREN
     private static Map<String, MainContext> ctxByClass = Collections.synchronizedMap(new HashMap<>());
     private Class<CTX> customCtxType;
 
-    protected   abstract @Nonnull CTX initCustomCtx(@Nullable PARENT_CTX parentCtx) throws Exception;
+    protected abstract @Nonnull CTX initCustomCtx(@Nullable PARENT_CTX parentCtx) throws Exception;
 
     public BaseJUnitITest(Class<CTX> customCtxType) {
         this(customCtxType, null);
