@@ -24,9 +24,7 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import static com.tradisys.commons.waves.itest.ConfigITest.SCRIPT_SETUP_FEE;
-import static com.tradisys.commons.waves.itest.ConfigITest.TRANSFER_FEE;
-import static com.tradisys.commons.waves.itest.ConfigITest.getITestConfig;
+import static com.tradisys.commons.waves.itest.ConfigITest.*;
 import static com.tradisys.games.server.utils.FormatUtils.toBlkMoney;
 import static com.tradisys.games.server.utils.FormatUtils.toServerMoney;
 import static com.wavesplatform.wavesj.PrivateKeyAccount.fromPrivateKey;
@@ -97,7 +95,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         String url = ConfigITest.NODE_URL;
         try {
             return new WavesNodeDecorator(url, chainId, null, HttpClientConfig.getDefault(), null,
-                    ConfigITest.NODE_API_AVG_BLOCK_DELAY, ConfigITest.NODE_API_RETRIES);
+                    ConfigITest.NODE_API_AVG_BLOCK_DELAY, ConfigITest.NODE_API_RETRIES, DEFAULT_TIMEOUT, 3);
         } catch (URISyntaxException ex) {
             String msg = String.format("Invalid waves node url in %1$s - %2$s", getITestConfig(), url);
             throw new RuntimeException(msg, ex);
@@ -129,7 +127,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     protected long getDefaultTimeout() {
-        return ConfigITest.DEFAULT_TIMEOUT;
+        return DEFAULT_TIMEOUT;
     }
 
     /**
@@ -186,7 +184,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         getLogger().info("Transferring initial funds to {} account: transferTxId={} accAddress={} initAmt={}",
                 name, txId, acc.getAddress(), initAmt);
         getNode().waitMoneyOnBalance(acc.getAddress(), BigDecimal.ZERO, initAmt,
-                DefaultPredicates.EQUALS, ConfigITest.DEFAULT_TIMEOUT);
+                DefaultPredicates.EQUALS, DEFAULT_TIMEOUT);
         return acc;
     }
 
@@ -371,7 +369,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         if (timeout > 0) {
             getNode().waitTransaction(txId, timeout);
         } else if (timeout == 0) {
-            getNode().waitTransaction(txId, ConfigITest.DEFAULT_TIMEOUT);
+            getNode().waitTransaction(txId, DEFAULT_TIMEOUT);
         }
         return txId;
     }
