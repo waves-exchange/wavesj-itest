@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
 import java.util.*;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
@@ -258,6 +259,11 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate, long timeout) throws InterruptedException, IOException {
+        return whileInState(stateSupplier, loopContinuePredicate, timeout, o -> {});
+    }
+
+    protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate,
+                                 long timeout, Consumer<Optional<T>> timeoutCallback) throws InterruptedException, IOException {
         Optional<T> state = Optional.empty();
         long start = System.currentTimeMillis();
 
@@ -271,6 +277,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
             Thread.sleep(1000);
 
             if (System.currentTimeMillis() - start >= timeout) {
+                timeoutCallback.accept(state);
                 getLogger().error("Waiting state was stopped by timeout");
                 throw new BlkChTimeoutException("Waiting state was stopped by timeout");
             }
