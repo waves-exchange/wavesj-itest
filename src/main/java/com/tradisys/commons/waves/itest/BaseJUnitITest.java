@@ -4,6 +4,7 @@ import com.tradisys.games.server.HttpClientConfig;
 import com.tradisys.games.server.exception.BlkChTimeoutException;
 import com.tradisys.games.server.integration.*;
 import com.tradisys.games.server.utils.DefaultPredicates;
+import com.tradisys.games.server.utils.FormatUtils;
 import com.wavesplatform.wavesj.*;
 import com.wavesplatform.wavesj.transactions.IssueTransaction;
 import org.apache.commons.io.IOUtils;
@@ -208,17 +209,26 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         }
     }
 
-    protected void assertWavesBalance(String message, PrivateKeyAccount acc, BigDecimal expected) throws IOException {
+    protected void assertWavesBalance(String message, PublicKeyAccount acc, BigDecimal expected) throws IOException {
         assertBalance(message, acc, null, toBlkMoney(expected));
     }
 
-    protected void assertBalance(String message, PrivateKeyAccount acc, String assetId, long expected) throws IOException {
+    protected void assertBalance(String message, PublicKeyAccount acc, String assetId, long expected) throws IOException {
         if (Asset.isWaves(assetId)) {
             BalanceInfo balance = getNode().getBalanceInfo(acc.getAddress());
             Assertions.assertEquals(expected, balance.getAvailable(), message);
         } else {
             AssetBalanceInfo balance = getNode().getAssetBalance(acc.getAddress(), assetId);
             Assertions.assertEquals(expected, balance.getBalance(), message);
+        }
+    }
+
+    protected void assertBalance(BalanceAssertion ... balanceAssertions) throws IOException {
+        for (BalanceAssertion b: balanceAssertions) {
+            String msg = b.getAssertMsg().orElse(
+                    b.getAcc().getAddress() + " must have " + FormatUtils.toServerMoney(b.getExpectedAmount())
+                            + " " + b.getAssetId().orElse("Waves"));
+            assertBalance(msg, b.getAcc(), b.getAssetId().orElse(null), b.getExpectedAmount());
         }
     }
 
