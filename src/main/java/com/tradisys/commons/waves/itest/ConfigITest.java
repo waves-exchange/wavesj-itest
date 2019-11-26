@@ -7,7 +7,8 @@ import java.math.BigDecimal;
 import java.util.Properties;
 
 public class ConfigITest {
-    public static final String FILE_NAME = "itest.properties";
+    private static final String WAVES_ITEST_CONFIG_PARAM = "wavesITestConfig";
+    private static final String FILE_NAME = "itest.properties";
 
     public static final byte    ACCOUNT_BYTE;
     public static final String  ACCOUNT_BYTE_ALIAS;
@@ -22,8 +23,9 @@ public class ConfigITest {
     public static final BigDecimal SCRIPT_TX_FEE    = new BigDecimal("0.005");
 
     static {
+        String configFile = getITestConfig();
         Properties props = new Properties();
-        InputStream in = ConfigITest.class.getClassLoader().getResourceAsStream(FILE_NAME);
+        InputStream in = ConfigITest.class.getClassLoader().getResourceAsStream(configFile);
         try {
             props.load(in);
             ACCOUNT_BYTE_ALIAS = props.getProperty("itest.account.byte");
@@ -34,8 +36,12 @@ public class ConfigITest {
             NODE_API_RETRIES = Integer.parseInt(props.getProperty("itest.account.node.api.retries"));
             NODE_API_AVG_BLOCK_DELAY = Long.parseLong(props.getProperty("itest.account.node.api.avgBlockDelay"));
         } catch (Exception ex) {
-            throw new IllegalStateException("Impossible to find itest configuration file in classpath: filename=" + FILE_NAME);
+            throw new IllegalStateException("Impossible to find itest configuration file in classpath: filename=" + getITestConfig());
         }
+    }
+
+    public static String getITestConfig() {
+        return System.getProperty(WAVES_ITEST_CONFIG_PARAM, FILE_NAME);
     }
 
     private static byte resolveAccountByte(String accountByte) {

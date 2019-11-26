@@ -25,6 +25,7 @@ import java.util.regex.Pattern;
 
 import static com.tradisys.commons.waves.itest.ConfigITest.SCRIPT_SETUP_FEE;
 import static com.tradisys.commons.waves.itest.ConfigITest.TRANSFER_FEE;
+import static com.tradisys.commons.waves.itest.ConfigITest.getITestConfig;
 import static com.tradisys.games.server.utils.FormatUtils.toBlkMoney;
 import static com.tradisys.games.server.utils.FormatUtils.toServerMoney;
 import static com.wavesplatform.wavesj.PrivateKeyAccount.fromPrivateKey;
@@ -97,7 +98,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
             return new WavesNodeDecorator(url, chainId, null, HttpClientConfig.getDefault(), null,
                     ConfigITest.NODE_API_AVG_BLOCK_DELAY, ConfigITest.NODE_API_RETRIES);
         } catch (URISyntaxException ex) {
-            String msg = String.format("Invalid waves node url in %1$s - %2$s", ConfigITest.FILE_NAME, url);
+            String msg = String.format("Invalid waves node url in %1$s - %2$s", getITestConfig(), url);
             throw new RuntimeException(msg, ex);
         }
     }
