@@ -6,11 +6,12 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 
-public class HardDriveFileExtractor implements ScmFileExtractor {
+public class HardDriveFileExtractor extends GitHubFileExtractor {
 
     private File dir;
 
     public HardDriveFileExtractor(String dirPath) {
+        super("empty");
         this.dir = new File(dirPath);
         if (!dir.exists() || !dir.isDirectory()) {
             throw new IllegalArgumentException("Invalid dir path: " + dirPath);
@@ -18,7 +19,7 @@ public class HardDriveFileExtractor implements ScmFileExtractor {
     }
 
     @Override
-    public String read(ScmFileMeta scmFileMeta) throws IOException {
+    protected String downloadScript(String branch, ScmFileMeta scmFileMeta) throws IOException {
         Path filePath = dir.toPath().resolve(scmFileMeta.getFileName());
         return FileUtils.readFileToString(filePath.toFile());
     }

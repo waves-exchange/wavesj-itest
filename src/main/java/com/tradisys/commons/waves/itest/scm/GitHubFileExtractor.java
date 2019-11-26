@@ -52,7 +52,7 @@ public class GitHubFileExtractor implements ScmFileExtractor {
                 if (modifiedScript == null) {
                     StringBuilder builder = new StringBuilder(getScriptOrDownload(branch, scmFileMeta));
 
-                    for (ScmFileContentPostProcessor p: postProcessorsMap.get(scmFileMeta)) {
+                    for (ScmFileContentPostProcessor p: postProcessorsMap.getOrDefault(scmFileMeta, Collections.emptyList())) {
                         builder = p.modify(builder);
                     }
                     modifiedScript = builder.toString();
@@ -64,11 +64,11 @@ public class GitHubFileExtractor implements ScmFileExtractor {
         return modifiedScript;
     }
 
-    private String getScriptOrDownload(String branch, ScmFileMeta scmFileMeta) throws IOException {
+    protected String getScriptOrDownload(String branch, ScmFileMeta scmFileMeta) throws IOException {
         return downloadScript(branch, scmFileMeta);
     }
 
-    private String downloadScript(String branch, ScmFileMeta scmFileMeta) throws IOException {
+    protected String downloadScript(String branch, ScmFileMeta scmFileMeta) throws IOException {
         URL scriptUrl = new URL(String.format(GITHUB_URL_TEMPLATE, branch, scmFileMeta.getFileName()));
         return IOUtils.toString(scriptUrl, StandardCharsets.UTF_8);
     }

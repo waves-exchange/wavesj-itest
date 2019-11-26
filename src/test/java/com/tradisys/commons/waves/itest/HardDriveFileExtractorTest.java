@@ -9,7 +9,7 @@ import java.io.IOException;
 
 public class HardDriveFileExtractorTest {
 
-    @Test
+    //@Test
     public void testRead() throws Exception {
         testFileRead("/Users/amurashko/Work/Tradisys/GitLab/waves-itest/src/test/resources");
         testFileRead("/Users/amurashko/Work/Tradisys/GitLab/waves-itest/src/test/resources/");
