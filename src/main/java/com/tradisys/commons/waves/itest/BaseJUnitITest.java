@@ -221,10 +221,17 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId) throws IOException, InterruptedException {
         if (Asset.isWaves(assetId)) {
             whileInState(() -> getBalanceSilently(acc.getAddress()),
-                    b -> b.getAvailable() != expectedRawBalance, getDefaultTimeout());
+                    b -> b.getAvailable() != expectedRawBalance, getDefaultTimeout(),
+                    ob -> ob.ifPresent(b -> getLogger()
+                            .warn("Waiting balance was stopped by timeout: actual={} expected={}",
+                                    b.getAvailable(), expectedRawBalance))
+                    );
         } else {
             whileInState(() ->  getAssetBalanceSilently(acc.getAddress(), assetId),
-                    b -> b.getBalance() != expectedRawBalance, getDefaultTimeout());
+                    b -> b.getBalance() != expectedRawBalance, getDefaultTimeout(),
+                    ob -> ob.ifPresent(b -> getLogger()
+                            .warn("Waiting balance was stopped by timeout: actual={} expected={}",
+                                    b.getBalance(), expectedRawBalance)));
         }
     }
 
