@@ -11,7 +11,7 @@ public class HardDriveFileExtractor extends GitHubFileExtractor {
     private File dir;
 
     public HardDriveFileExtractor(String dirPath) {
-        super("empty");
+        super("empty", "empty");
         this.dir = new File(dirPath);
         if (!dir.exists() || !dir.isDirectory()) {
             throw new IllegalArgumentException("Invalid dir path: " + dirPath);

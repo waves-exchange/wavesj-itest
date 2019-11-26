@@ -13,15 +13,16 @@ public class GitHubFileExtractor implements ScmFileExtractor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GitHubFileExtractor.class);
 
-    static final String GITHUB_URL_TEMPLATE =
-            "https://raw.githubusercontent.com/waves-exchange/neutrino-contract/%1$s/script/%2$s";
+    static final String GITHUB_URL_TEMPLATE = "https://raw.githubusercontent.com/${project}/${branch}/${filePath}";
 
+    private String project;
     private String branch;
 
     private Map<ScmFileMeta, List<ScmFileContentPostProcessor>> postProcessorsMap;
     private Map<ScmFileMeta, String> modifiedScriptsCache = new HashMap<>();
 
-    public GitHubFileExtractor(String branch) {
+    public GitHubFileExtractor(String project, String branch) {
+        this.project = project;
         this.branch = branch;
         this.postProcessorsMap = new HashMap<>();
     }
@@ -69,7 +70,9 @@ public class GitHubFileExtractor implements ScmFileExtractor {
     }
 
     protected String downloadScript(String branch, ScmFileMeta scmFileMeta) throws IOException {
-        URL scriptUrl = new URL(String.format(GITHUB_URL_TEMPLATE, branch, scmFileMeta.getFileName()));
-        return IOUtils.toString(scriptUrl, StandardCharsets.UTF_8);
+        String urlStr = GITHUB_URL_TEMPLATE.replace("${project}", project)
+                .replace("${branch}", branch)
+                .replace("${filePath}", scmFileMeta.getFileName());
+        return IOUtils.toString(new URL(urlStr), StandardCharsets.UTF_8);
     }
 }
