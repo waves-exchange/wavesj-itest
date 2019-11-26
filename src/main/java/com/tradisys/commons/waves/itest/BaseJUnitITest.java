@@ -71,7 +71,8 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     protected static WavesNodeDecorator getDefaultNode(byte chainId) {
         String url = ConfigITest.NODE_URL;
         try {
-            return new WavesNodeDecorator(ConfigITest.NODE_URL, chainId, HttpClientConfig.getDefault());
+            return new WavesNodeDecorator(url, chainId, null, HttpClientConfig.getDefault(), null,
+                    ConfigITest.NODE_API_AVG_BLOCK_DELAY, ConfigITest.NODE_API_RETRIES);
         } catch (URISyntaxException ex) {
             String msg = String.format("Invalid waves node url in %1$s - %2$s", ConfigITest.FILE_NAME, url);
             throw new RuntimeException(msg, ex);
