@@ -124,6 +124,10 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         mainCtx().cleanup = true;
     }
 
+    protected final Set<PrivateKeyAccount> _getAllocatedAccounts() {
+        return new HashSet<>(mainCtx().allocatedAccounts);
+    }
+
     protected long getDefaultTimeout() {
         return ConfigITest.DEFAULT_TIMEOUT;
     }
@@ -159,6 +163,14 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
             mainCtx().allocatedAccounts.add(acc);
         }
         return acc;
+    }
+
+    protected void cleanUpAdditionalAccounts(PrivateKeyAccount ... accounts) {
+        cleanUpAdditionalAccounts(Arrays.asList(accounts));
+    }
+
+    protected void cleanUpAdditionalAccounts(Collection<PrivateKeyAccount> accounts) {
+        mainCtx().allocatedAccounts.addAll(accounts);
     }
 
     protected PrivateKeyAccount generateNewAccount(String name, boolean cleanUpAfterTests, BigDecimal initAmt)
@@ -301,7 +313,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         private boolean cleanup;
         private NodeDecorator wavesNode;
         private PrivateKeyAccount benzAcc;
-        private List<PrivateKeyAccount> allocatedAccounts = new ArrayList<>(10);
+        private Set<PrivateKeyAccount> allocatedAccounts = new HashSet<>(10);
 
         private boolean customCtxInitError;
         private CustomCtx customCtx;
