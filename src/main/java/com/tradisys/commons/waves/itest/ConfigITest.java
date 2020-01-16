@@ -14,6 +14,8 @@ public class ConfigITest {
     public static final String  NODE_URL;
     public static final String  BENZ_PRIVATE;
     public static final long    DEFAULT_TIMEOUT;
+    public static final int     NODE_API_RETRIES;
+    public static final long    NODE_API_AVG_BLOCK_DELAY;
 
     public static final BigDecimal TRANSFER_FEE     = new BigDecimal("0.001");
     public static final BigDecimal SCRIPT_SETUP_FEE = new BigDecimal("0.01");
@@ -29,6 +31,8 @@ public class ConfigITest {
             NODE_URL = props.getProperty("itest.account.node.address");
             BENZ_PRIVATE = props.getProperty("itest.account.benz.private.key");
             DEFAULT_TIMEOUT = Long.parseLong(props.getProperty("itest.timeout.default"));
+            NODE_API_RETRIES = Integer.parseInt(props.getProperty("itest.account.node.api.retries"));
+            NODE_API_AVG_BLOCK_DELAY = Long.parseLong(props.getProperty("itest.account.node.api.avgBlockDelay"));
         } catch (Exception ex) {
             throw new IllegalStateException("Impossible to find itest configuration file in classpath: filename=" + FILE_NAME);
         }
@@ -38,8 +42,8 @@ public class ConfigITest {
         switch (accountByte.toLowerCase()) {
             case "testnet": return NodeDecorator.TESTNET;
             case "mainnet": return NodeDecorator.MAINNET;
-            case "tradisysnet":
-            default: return NodeDecorator.TRADISYSNET;
+            case "tradisysnet": return NodeDecorator.TRADISYSNET;
+            default: return accountByte.getBytes()[0];
         }
     }
 }
