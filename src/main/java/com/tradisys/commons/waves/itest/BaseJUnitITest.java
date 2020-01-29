@@ -140,6 +140,10 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
 
     @AfterEach
     public void cleanUp() throws Exception {
+        cleanUpAllocatedAccountsBalance();
+    }
+
+    protected void cleanUpAllocatedAccountsBalance() throws Exception {
         if (mainCtx().cleanup) {
             if (mainCtx().allocatedAccounts.size() > 0) {
                 Thread.sleep(10 * 1000);
@@ -147,6 +151,8 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
                 for (PrivateKeyAccount acc : mainCtx().allocatedAccounts) {
                     tryToReturnMoney(acc, new BigDecimal("0.005"));
                 }
+            } else {
+                getLogger().info("There were no allocated accounts");
             }
         }
     }
@@ -187,6 +193,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
             if (acc != null) {
                 BalanceInfo balance = getNode().getBalanceInfo(acc.getAddress());
                 BigDecimal available = toServerMoney(balance.getAvailable());
+                getLogger().info("Returning waves: acc={} balance={}", acc.getAddress(), available);
                 if (available.compareTo(fee) > 0) {
                     BigDecimal moneyToTransfer = available.subtract(fee);
 
@@ -196,7 +203,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
                 }
             }
         } catch (Throwable ex) {
-            getLogger().warn("Error to execute money from {}: msg={}", acc.getAddress(), ex.getMessage());
+            getLogger().warn("Error to return money from {}: msg={}", acc.getAddress(), ex.getMessage());
         }
     }
 
@@ -215,20 +222,28 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     public void waitWavesBalance(PublicKeyAccount acc, long expectedRawBalance) throws IOException, InterruptedException {
-        waitAssetBalance(acc, expectedRawBalance, null);
+        waitWavesBalance(acc, expectedRawBalance, getDefaultTimeout());
+    }
+
+    public void waitWavesBalance(PublicKeyAccount acc, long expectedRawBalance, long timeout) throws IOException, InterruptedException {
+        waitAssetBalance(acc, expectedRawBalance, null, timeout);
     }
 
     public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId) throws IOException, InterruptedException {
+        waitAssetBalance(acc, expectedRawBalance, assetId, getDefaultTimeout());
+    }
+
+    public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId, long timeout) throws IOException, InterruptedException {
         if (Asset.isWaves(assetId)) {
             whileInState(() -> getBalanceSilently(acc.getAddress()),
-                    b -> b.getAvailable() != expectedRawBalance, getDefaultTimeout(),
+                    b -> b.getAvailable() != expectedRawBalance, timeout,
                     ob -> ob.ifPresent(b -> getLogger()
                             .warn("Waiting balance was stopped by timeout: actual={} expected={}",
                                     b.getAvailable(), expectedRawBalance))
                     );
         } else {
             whileInState(() ->  getAssetBalanceSilently(acc.getAddress(), assetId),
-                    b -> b.getBalance() != expectedRawBalance, getDefaultTimeout(),
+                    b -> b.getBalance() != expectedRawBalance, timeout,
                     ob -> ob.ifPresent(b -> getLogger()
                             .warn("Waiting balance was stopped by timeout: actual={} expected={}",
                                     b.getBalance(), expectedRawBalance)));
@@ -291,13 +306,26 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
 
     protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate,
                                  long timeout, Consumer<Optional<T>> timeoutCallback) throws InterruptedException, IOException {
+        return whileInState(stateSupplier, loopContinuePredicate, 3, timeout, timeoutCallback);
+    }
+
+    protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate, int confirmations,
+                                 long timeout, Consumer<Optional<T>> timeoutCallback) throws InterruptedException, IOException {
         Optional<T> state = Optional.empty();
         long start = System.currentTimeMillis();
+        int currConfirmations = 0;
+        boolean loop = true;
 
-        while (!state.isPresent()
-                || loopContinuePredicate.test(state.get())) {
+        while (loop) {
             try {
                 state = stateSupplier.get();
+                if (state.isPresent()) {
+                    if (!loopContinuePredicate.test(state.get())) {
+                        if (currConfirmations++ >= confirmations) {
+                            loop = false;
+                        }
+                    }
+                }
             } catch (Exception ex) {
                 getLogger().warn("Error during shared state read");
             }
