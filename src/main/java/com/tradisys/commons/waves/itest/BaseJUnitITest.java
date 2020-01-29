@@ -140,6 +140,10 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
 
     @AfterEach
     public void cleanUp() throws Exception {
+        cleanUpAllocatedAccountsBalance();
+    }
+
+    protected void cleanUpAllocatedAccountsBalance() throws Exception {
         if (mainCtx().cleanup) {
             if (mainCtx().allocatedAccounts.size() > 0) {
                 Thread.sleep(10 * 1000);
@@ -147,6 +151,8 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
                 for (PrivateKeyAccount acc : mainCtx().allocatedAccounts) {
                     tryToReturnMoney(acc, new BigDecimal("0.005"));
                 }
+            } else {
+                getLogger().info("There were no allocated accounts");
             }
         }
     }
@@ -187,6 +193,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
             if (acc != null) {
                 BalanceInfo balance = getNode().getBalanceInfo(acc.getAddress());
                 BigDecimal available = toServerMoney(balance.getAvailable());
+                getLogger().info("Returning waves: acc={} balance={}", acc.getAddress(), available);
                 if (available.compareTo(fee) > 0) {
                     BigDecimal moneyToTransfer = available.subtract(fee);
 
@@ -196,7 +203,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
                 }
             }
         } catch (Throwable ex) {
-            getLogger().warn("Error to execute money from {}: msg={}", acc.getAddress(), ex.getMessage());
+            getLogger().warn("Error to return money from {}: msg={}", acc.getAddress(), ex.getMessage());
         }
     }
 
