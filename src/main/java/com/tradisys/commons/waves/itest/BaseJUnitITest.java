@@ -298,13 +298,26 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
 
     protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate,
                                  long timeout, Consumer<Optional<T>> timeoutCallback) throws InterruptedException, IOException {
+        return whileInState(stateSupplier, loopContinuePredicate, 3, timeout, timeoutCallback);
+    }
+
+    protected <T> T whileInState(Supplier<Optional<T>> stateSupplier, Predicate<T> loopContinuePredicate, int confirmations,
+                                 long timeout, Consumer<Optional<T>> timeoutCallback) throws InterruptedException, IOException {
         Optional<T> state = Optional.empty();
         long start = System.currentTimeMillis();
+        int currConfirmations = 0;
+        boolean loop = true;
 
-        while (!state.isPresent()
-                || loopContinuePredicate.test(state.get())) {
+        while (loop) {
             try {
                 state = stateSupplier.get();
+                if (state.isPresent()) {
+                    if (!loopContinuePredicate.test(state.get())) {
+                        if (currConfirmations++ >= confirmations) {
+                            loop = false;
+                        }
+                    }
+                }
             } catch (Exception ex) {
                 getLogger().warn("Error during shared state read");
             }
