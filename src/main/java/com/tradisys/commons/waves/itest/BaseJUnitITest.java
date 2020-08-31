@@ -15,6 +15,7 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
@@ -29,7 +30,7 @@ import static com.tradisys.games.server.utils.FormatUtils.toBlkMoney;
 import static com.tradisys.games.server.utils.FormatUtils.toServerMoney;
 import static com.wavesplatform.wavesj.PrivateKeyAccount.fromPrivateKey;
 
-public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
+public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PARENT_CTX extends BaseJUnitITest.CustomCtx> {
 
     private static final Pattern COMMENT_REGEX = Pattern.compile("#.*");
 
@@ -67,15 +68,19 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
 
     @BeforeEach
     public void init() {
+        init(null);
+    }
+
+    public void init(@Nullable PARENT_CTX parentCtx) {
         MainContext mainCtx = mainCtx();
         if (mainCtx.customCtx == null && !mainCtx.customCtxInitError) {
-            mainCtx.customCtx = _initCustomCtx();
+            mainCtx.customCtx = _initCustomCtx(parentCtx);
         }
     }
 
-    private CTX _initCustomCtx() {
+    private CTX _initCustomCtx(@Nullable PARENT_CTX parentCtx) {
         try {
-            CTX ctx = initCustomCtx();
+            CTX ctx = initCustomCtx(parentCtx);
             getLogger().info("Custom context key={} hasCode={} has been initialized", ctxKey(), ctx.hashCode());
             return ctx;
         } catch (Exception ex) {
@@ -85,7 +90,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         return null;
     }
 
-    protected abstract CTX initCustomCtx() throws Exception;
+    protected abstract CTX initCustomCtx(@Nullable PARENT_CTX parentCtx) throws Exception;
 
     public final CTX ctx() {
         return customCtxType.cast(mainCtx().customCtx);

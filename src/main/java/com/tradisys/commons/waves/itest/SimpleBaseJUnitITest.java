@@ -3,7 +3,7 @@ package com.tradisys.commons.waves.itest;
 import com.tradisys.games.server.integration.NodeDecorator;
 import com.wavesplatform.wavesj.PrivateKeyAccount;
 
-public class SimpleBaseJUnitITest extends BaseJUnitITest<BaseJUnitITest.EmptyCustomCtx> {
+public class SimpleBaseJUnitITest extends BaseJUnitITest<BaseJUnitITest.EmptyCustomCtx, BaseJUnitITest.EmptyCustomCtx> {
 
     public SimpleBaseJUnitITest() {
         super(BaseJUnitITest.EmptyCustomCtx.class);
@@ -22,7 +22,7 @@ public class SimpleBaseJUnitITest extends BaseJUnitITest<BaseJUnitITest.EmptyCus
     }
 
     @Override
-    protected EmptyCustomCtx initCustomCtx() {
+    protected EmptyCustomCtx initCustomCtx(EmptyCustomCtx parentCtx) {
         return new EmptyCustomCtx();
     }
 }
