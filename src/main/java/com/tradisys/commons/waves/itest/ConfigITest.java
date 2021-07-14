@@ -7,35 +7,58 @@ import java.math.BigDecimal;
 import java.util.Properties;
 
 public class ConfigITest {
-    public static final String FILE_NAME = "itest.properties";
+    private static final String WAVES_ITEST_CONFIG_PARAM = "wavesITestConfig";
+    private static final String FILE_NAME = "itest.properties";
 
-    public static final byte    ACCOUNT_BYTE;
-    public static final String  ACCOUNT_BYTE_ALIAS;
-    public static final String  NODE_URL;
-    public static final String  BENZ_PRIVATE;
-    public static final long    DEFAULT_TIMEOUT;
-    public static final int     NODE_API_RETRIES;
-    public static final long    NODE_API_AVG_BLOCK_DELAY;
+    private static volatile ConfigITest instance;
+
+    private final byte    accountByte;
+    private final String  accountByteAlias;
+    private final String  nodeUrl;
+    private final String  benzPrivate;
+    private final long    defaultTimeout;
+    private final int     nodeApiRetries;
+    private final long    nodeApiAvgBlockDelay;
 
     public static final BigDecimal TRANSFER_FEE     = new BigDecimal("0.001");
     public static final BigDecimal SCRIPT_SETUP_FEE = new BigDecimal("0.01");
     public static final BigDecimal SCRIPT_TX_FEE    = new BigDecimal("0.005");
 
-    static {
+    public static ConfigITest get() {
+        if (instance == null) {
+            synchronized (ConfigITest.class) {
+                if (instance == null) {
+                    instance = new ConfigITest();
+                }
+            }
+        }
+        return instance;
+    }
+
+    protected ConfigITest() {
+        String configFile = getITestConfigFile();
         Properties props = new Properties();
-        InputStream in = ConfigITest.class.getClassLoader().getResourceAsStream(FILE_NAME);
+        InputStream in = ConfigITest.class.getClassLoader().getResourceAsStream(configFile);
         try {
             props.load(in);
-            ACCOUNT_BYTE_ALIAS = props.getProperty("itest.account.byte");
-            ACCOUNT_BYTE = resolveAccountByte(ACCOUNT_BYTE_ALIAS);
-            NODE_URL = props.getProperty("itest.account.node.address");
-            BENZ_PRIVATE = props.getProperty("itest.account.benz.private.key");
-            DEFAULT_TIMEOUT = Long.parseLong(props.getProperty("itest.timeout.default"));
-            NODE_API_RETRIES = Integer.parseInt(props.getProperty("itest.account.node.api.retries"));
-            NODE_API_AVG_BLOCK_DELAY = Long.parseLong(props.getProperty("itest.account.node.api.avgBlockDelay"));
+            accountByteAlias = props.getProperty("itest.account.byte");
+            accountByte = resolveAccountByte(accountByteAlias);
+            nodeUrl = props.getProperty("itest.account.node.address");
+            benzPrivate = props.getProperty("itest.account.benz.private.key");
+            defaultTimeout = Long.parseLong(props.getProperty("itest.timeout.default"));
+            nodeApiRetries = Integer.parseInt(props.getProperty("itest.account.node.api.retries"));
+            nodeApiAvgBlockDelay = Long.parseLong(props.getProperty("itest.account.node.api.avgBlockDelay"));
+            init(props);
         } catch (Exception ex) {
-            throw new IllegalStateException("Impossible to find itest configuration file in classpath: filename=" + FILE_NAME);
+            throw new IllegalStateException("Impossible to find itest configuration file in classpath: filename=" + getITestConfigFile(), ex);
         }
+    }
+
+    protected void init(Properties props) {
+    }
+
+    public static String getITestConfigFile() {
+        return System.getProperty(WAVES_ITEST_CONFIG_PARAM, FILE_NAME);
     }
 
     private static byte resolveAccountByte(String accountByte) {
@@ -45,5 +68,33 @@ public class ConfigITest {
             case "tradisysnet": return NodeDecorator.TRADISYSNET;
             default: return accountByte.getBytes()[0];
         }
+    }
+
+    public byte getAccountByte() {
+        return accountByte;
+    }
+
+    public String getAccountByteAlias() {
+        return accountByteAlias;
+    }
+
+    public String getNodeUrl() {
+        return nodeUrl;
+    }
+
+    public String getBenzPrivate() {
+        return benzPrivate;
+    }
+
+    public long getDefaultTimeout() {
+        return defaultTimeout;
+    }
+
+    public int getNodeApiRetries() {
+        return nodeApiRetries;
+    }
+
+    public long getNodeApiAvgBlockDelay() {
+        return nodeApiAvgBlockDelay;
     }
 }

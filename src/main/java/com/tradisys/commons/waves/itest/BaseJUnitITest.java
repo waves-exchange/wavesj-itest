@@ -4,6 +4,7 @@ import com.tradisys.games.server.HttpClientConfig;
 import com.tradisys.games.server.exception.BlkChTimeoutException;
 import com.tradisys.games.server.integration.*;
 import com.tradisys.games.server.utils.DefaultPredicates;
+import com.tradisys.games.server.utils.FormatUtils;
 import com.wavesplatform.wavesj.*;
 import com.wavesplatform.wavesj.transactions.IssueTransaction;
 import org.apache.commons.io.IOUtils;
@@ -14,6 +15,8 @@ import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.net.URISyntaxException;
@@ -23,81 +26,98 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.regex.Pattern;
 
-import static com.tradisys.commons.waves.itest.ConfigITest.SCRIPT_SETUP_FEE;
-import static com.tradisys.commons.waves.itest.ConfigITest.TRANSFER_FEE;
+import static com.tradisys.commons.waves.itest.ConfigITest.*;
 import static com.tradisys.games.server.utils.FormatUtils.toBlkMoney;
 import static com.tradisys.games.server.utils.FormatUtils.toServerMoney;
 import static com.wavesplatform.wavesj.PrivateKeyAccount.fromPrivateKey;
 
-public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
+public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx, PARENT_CTX extends BaseJUnitITest.CustomCtx> {
 
     private static final Pattern COMMENT_REGEX = Pattern.compile("#.*");
 
     private static Map<String, MainContext> ctxByClass = Collections.synchronizedMap(new HashMap<>());
     private Class<CTX> customCtxType;
 
+    protected abstract @Nonnull CTX initCustomCtx(@Nullable PARENT_CTX parentCtx) throws Exception;
+
     public BaseJUnitITest(Class<CTX> customCtxType) {
-        this(customCtxType, ConfigITest.ACCOUNT_BYTE);
+        this(customCtxType, null);
     }
 
-    public BaseJUnitITest(Class<CTX> customCtxType, byte chainId) {
+    public BaseJUnitITest(Class<CTX> customCtxType, Byte chainId) {
         this(customCtxType, chainId, null);
     }
 
-    public BaseJUnitITest(Class<CTX> customCtxType, byte chainId, NodeDecorator nodeUrl) {
-        this(customCtxType, nodeUrl, chainId, null);
+    public BaseJUnitITest(Class<CTX> customCtxType, Byte chainId, NodeDecorator node) {
+        this(customCtxType, node, chainId, null);
     }
 
-    public BaseJUnitITest(Class<CTX> customCtxType, NodeDecorator node, byte chainId, PrivateKeyAccount benzAcc) {
+    public BaseJUnitITest(Class<CTX> customCtxType, NodeDecorator node, Byte chainId, PrivateKeyAccount benzAcc) {
         this.customCtxType = customCtxType;
         MainContext mainCtx = mainCtx();
         if (mainCtx == null) {
             mainCtx = new MainContext();
-            ctxByClass.put(ctxKey(), mainCtx);
-
             mainCtx.chainId = chainId;
-            mainCtx.wavesNode = node != null ? node : getDefaultNode(mainCtx.chainId);
-            mainCtx.benzAcc = benzAcc != null ? benzAcc : fromPrivateKey(ConfigITest.BENZ_PRIVATE, chainId);
+            mainCtx.wavesNode = node;
+            mainCtx.benzAcc = benzAcc;
             mainCtx.cleanup = false;
             mainCtx.logger = LoggerFactory.getLogger(this.getClass());
 
-            getLogger().info("Benz account address: {}", getBenzAcc().getAddress());
+            ctxByClass.put(ctxKey(), mainCtx);
         }
+    }
+
+    public @Nonnull ConfigITest getITesConfig() {
+        return ConfigITest.get();
     }
 
     @BeforeEach
     public void init() {
+        init(null);
+    }
+
+    public void init(@Nullable PARENT_CTX parentCtx) {
         MainContext mainCtx = mainCtx();
         if (mainCtx.customCtx == null && !mainCtx.customCtxInitError) {
-            mainCtx.customCtx = _initCustomCtx();
+            ConfigITest cfg = getITesConfig();
+
+            mainCtx.chainId = mainCtx.chainId != null ? mainCtx.chainId : cfg.getAccountByte();
+            mainCtx.wavesNode = mainCtx.wavesNode != null ? mainCtx.wavesNode : getDefaultNode(mainCtx.chainId, cfg);
+            mainCtx.benzAcc = mainCtx.benzAcc != null ? mainCtx.benzAcc : fromPrivateKey(cfg.getBenzPrivate(), mainCtx.chainId);
+            mainCtx.cleanup = false;
+            mainCtx.logger = LoggerFactory.getLogger(this.getClass());
+
+            getLogger().info("Benz account address: {}", getBenzAcc().getAddress());
+
+            mainCtx.customCtx = _initCustomCtx(parentCtx);
         }
     }
 
-    private CTX _initCustomCtx() {
+    private @Nonnull CTX _initCustomCtx(@Nullable PARENT_CTX parentCtx) {
         try {
-            CTX ctx = initCustomCtx();
+            CTX ctx = initCustomCtx(parentCtx);
             getLogger().info("Custom context key={} hasCode={} has been initialized", ctxKey(), ctx.hashCode());
             return ctx;
         } catch (Exception ex) {
             getLogger().error("Error during custom context initialization", ex);
             mainCtx().customCtxInitError = true;
+            throw new RuntimeException("Error during custom context initialization", ex);
         }
-        return null;
     }
-
-    protected abstract CTX initCustomCtx() throws Exception;
 
     public final CTX ctx() {
         return customCtxType.cast(mainCtx().customCtx);
     }
 
-    protected static WavesNodeDecorator getDefaultNode(byte chainId) {
-        String url = ConfigITest.NODE_URL;
+    protected static WavesNodeDecorator getDefaultNode(byte chainId, ConfigITest cfg) {
+        String url = cfg.getNodeUrl();
         try {
             return new WavesNodeDecorator(url, chainId, null, HttpClientConfig.getDefault(), null,
-                    ConfigITest.NODE_API_AVG_BLOCK_DELAY, ConfigITest.NODE_API_RETRIES);
+                    cfg.getNodeApiAvgBlockDelay(),
+                    cfg.getNodeApiRetries(),
+                    cfg.getDefaultTimeout(), 3);
         } catch (URISyntaxException ex) {
-            String msg = String.format("Invalid waves node url in %1$s - %2$s", ConfigITest.FILE_NAME, url);
+            String msg = String.format("Invalid waves node url in %1$s - %2$s", getITestConfigFile(), url);
             throw new RuntimeException(msg, ex);
         }
     }
@@ -127,7 +147,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     protected long getDefaultTimeout() {
-        return ConfigITest.DEFAULT_TIMEOUT;
+        return getITesConfig().getDefaultTimeout();
     }
 
     /**
@@ -184,7 +204,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         getLogger().info("Transferring initial funds to {} account: transferTxId={} accAddress={} initAmt={}",
                 name, txId, acc.getAddress(), initAmt);
         getNode().waitMoneyOnBalance(acc.getAddress(), BigDecimal.ZERO, initAmt,
-                DefaultPredicates.EQUALS, ConfigITest.DEFAULT_TIMEOUT);
+                DefaultPredicates.EQUALS, getDefaultTimeout());
         return acc;
     }
 
@@ -207,11 +227,11 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         }
     }
 
-    protected void assertWavesBalance(String message, PrivateKeyAccount acc, BigDecimal expected) throws IOException {
+    protected void assertWavesBalance(String message, PublicKeyAccount acc, BigDecimal expected) throws IOException {
         assertBalance(message, acc, null, toBlkMoney(expected));
     }
 
-    protected void assertBalance(String message, PrivateKeyAccount acc, String assetId, long expected) throws IOException {
+    protected void assertBalance(String message, PublicKeyAccount acc, String assetId, long expected) throws IOException {
         if (Asset.isWaves(assetId)) {
             BalanceInfo balance = getNode().getBalanceInfo(acc.getAddress());
             Assertions.assertEquals(expected, balance.getAvailable(), message);
@@ -221,12 +241,25 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         }
     }
 
+    protected void assertBalance(BalanceAssertion ... balanceAssertions) throws IOException {
+        for (BalanceAssertion b: balanceAssertions) {
+            String msg = b.getAssertMsg().orElse(
+                    b.getAcc().getAddress() + " must have " + FormatUtils.toServerMoney(b.getExpectedAmount())
+                            + " " + b.getAssetId().orElse("Waves"));
+            assertBalance(msg, b.getAcc(), b.getAssetId().orElse(null), b.getExpectedAmount());
+        }
+    }
+
     public void waitWavesBalance(PublicKeyAccount acc, long expectedRawBalance) throws IOException, InterruptedException {
         waitWavesBalance(acc, expectedRawBalance, getDefaultTimeout());
     }
 
     public void waitWavesBalance(PublicKeyAccount acc, long expectedRawBalance, long timeout) throws IOException, InterruptedException {
-        waitAssetBalance(acc, expectedRawBalance, null, timeout);
+        waitWavesBalance(acc.getAddress(), expectedRawBalance, timeout);
+    }
+
+    public void waitWavesBalance(String address, long expectedRawBalance, long timeout) throws IOException, InterruptedException {
+        waitAssetBalance(address, expectedRawBalance, null, timeout);
     }
 
     public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId) throws IOException, InterruptedException {
@@ -234,19 +267,23 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
     }
 
     public void waitAssetBalance(PublicKeyAccount acc, long expectedRawBalance, String assetId, long timeout) throws IOException, InterruptedException {
+        waitAssetBalance(acc.getAddress(), expectedRawBalance, assetId, timeout);
+    }
+
+    public void waitAssetBalance(String address, long expectedRawBalance, String assetId, long timeout) throws IOException, InterruptedException {
         if (Asset.isWaves(assetId)) {
-            whileInState(() -> getBalanceSilently(acc.getAddress()),
+            whileInState(() -> getBalanceSilently(address),
                     b -> b.getAvailable() != expectedRawBalance, timeout,
                     ob -> ob.ifPresent(b -> getLogger()
-                            .warn("Waiting balance was stopped by timeout: actual={} expected={}",
-                                    b.getAvailable(), expectedRawBalance))
+                            .warn("Waiting balance for {} was stopped by timeout: actual={} expected={}",
+                                    address, b.getAvailable(), expectedRawBalance))
                     );
         } else {
-            whileInState(() ->  getAssetBalanceSilently(acc.getAddress(), assetId),
+            whileInState(() ->  getAssetBalanceSilently(address, assetId),
                     b -> b.getBalance() != expectedRawBalance, timeout,
                     ob -> ob.ifPresent(b -> getLogger()
-                            .warn("Waiting balance was stopped by timeout: actual={} expected={}",
-                                    b.getBalance(), expectedRawBalance)));
+                            .warn("Waiting balance for {} was stopped by timeout: actual={} expected={}",
+                                    address, b.getBalance(), expectedRawBalance)));
         }
     }
 
@@ -278,6 +315,17 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         getLogger().info("New {} has been issued: name={} decimals={} id={}",
                 issueTx.getDescription(), issueTx.getName(), decimals, txId);
         return txId;
+    }
+
+    protected String burnAsset(PrivateKeyAccount acc, String assetId, long amount) throws IOException {
+        return burnAsset(acc, assetId, amount, Fees.WAVES.TRANSFER_FEE);
+    }
+
+    protected String burnAsset(PrivateKeyAccount acc, String assetId, long amount, long fee) throws IOException {
+        Transaction burnTx = Transactions.makeBurnTx(acc, getChainId(), assetId, amount, fee);
+        getLogger().info("Burning asset: txId={} acc={} assetId={} assetId={}",
+                burnTx.getId().getBase58String(), acc.getAddress(), amount, fee);
+        return getNode().send(burnTx);
     }
 
     protected Optional<BalanceInfo> getBalanceSilently(String address) {
@@ -314,27 +362,29 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         Optional<T> state = Optional.empty();
         long start = System.currentTimeMillis();
         int currConfirmations = 0;
-        boolean loop = true;
 
-        while (loop) {
+        while (currConfirmations < confirmations) {
             try {
                 state = stateSupplier.get();
                 if (state.isPresent()) {
                     if (!loopContinuePredicate.test(state.get())) {
-                        if (currConfirmations++ >= confirmations) {
-                            loop = false;
-                        }
+                        currConfirmations++;
                     }
                 }
             } catch (Exception ex) {
-                getLogger().warn("Error during shared state read");
+                getLogger().warn("whileInState: error during state read");
             }
-            Thread.sleep(1000);
 
             if (System.currentTimeMillis() - start >= timeout) {
                 timeoutCallback.accept(state);
                 getLogger().error("Waiting state was stopped by timeout");
                 throw new BlkChTimeoutException("Waiting state was stopped by timeout");
+            }
+
+            if (currConfirmations == 0) {
+                Thread.sleep(1000);
+            } else {
+                Thread.sleep(100);
             }
         }
 
@@ -350,7 +400,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
         if (timeout > 0) {
             getNode().waitTransaction(txId, timeout);
         } else if (timeout == 0) {
-            getNode().waitTransaction(txId, ConfigITest.DEFAULT_TIMEOUT);
+            getNode().waitTransaction(txId, getDefaultTimeout());
         }
         return txId;
     }
@@ -381,7 +431,7 @@ public abstract class BaseJUnitITest<CTX extends BaseJUnitITest.CustomCtx> {
 
         private Logger logger;
 
-        private byte chainId;
+        private Byte chainId;
         private boolean cleanup;
         private NodeDecorator wavesNode;
         private PrivateKeyAccount benzAcc;
