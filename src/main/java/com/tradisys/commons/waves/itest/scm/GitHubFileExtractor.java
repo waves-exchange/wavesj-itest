@@ -67,7 +67,7 @@ public class GitHubFileExtractor implements ScmFileExtractor {
                 modifiedScript = modifiedScriptsCache.get(scmFileMeta);
                 if (modifiedScript == null) {
                     StringBuilder builder = new StringBuilder(getScriptOrDownload(branch, scmFileMeta));
-                    builder = gitRevisionPostProcessor(builder);
+                    builder = replaceRevision(builder);
                     for (ScmFileContentPostProcessor p: postProcessorsMap.getOrDefault(scmFileMeta, Collections.emptyList())) {
                         builder = p.modify(builder);
                     }
@@ -80,7 +80,7 @@ public class GitHubFileExtractor implements ScmFileExtractor {
         return modifiedScript;
     }
 
-    private StringBuilder gitRevisionPostProcessor(StringBuilder content) {
+    private StringBuilder replaceRevision(StringBuilder content) {
         Matcher matcher = REVISION_PATTERN.matcher(content);
         if (matcher.find()) {
             return new StringBuilder(matcher.replaceFirst(String.format("let revisionNum = \"%s\"", hash)));
