@@ -81,10 +81,7 @@ public class GitHubFileExtractor implements ScmFileExtractor {
     }
 
     private StringBuilder replaceRevision(StringBuilder content) {
-        Matcher matcher = REVISION_PATTERN.matcher(content);
-        if (matcher.find()) {
-            return new StringBuilder(matcher.replaceFirst(String.format("let revisionNum = \"%s\"", hash)));
-        }
+        ScmFileContentPostProcessor.replaceLine("let revisionNum", String.format("let revisionNum = \"%s\"", hash), content);
         return content;
     }
 
